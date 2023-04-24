@@ -1,0 +1,639 @@
+#+TITLE: my emacs config, written in org.
+#+PROPERTY: header-args:elisp :tangle ./init.el 
+#+STARTUP: overview
+
+* Welcome to my config!
+That's my emacs config, written in org. This file generates [[file:init.el][init.el]] which will be loaded by emacs at startup.
+Whitout futher ado, let's get started!
+Still is a wip, so, stuff can be updated anytime.
+
+* Startup Performance
+
+#+begin_src elisp
+;; This file was generated my config.org. If you're using this, please go modify it
+
+;; default is 800 kilobytes. Measured in bytes.
+(setq gc-cons-threshold most-positive-fixnum
+			gc-cons-percentage 0.6)
+
+(add-hook 'emacs-startup-hook
+					#'(lambda () (setq gc-cons-threshold (* 50 1000 1000))))
+
+;; Defer loading most packages for quickier startup times
+(setq use-package-always-defer t)
+#+end_src
+
+* Some optimizations
+#+begin_src elisp
+(setq idle-update-delay 1.0)
+(setq highlight-nonselected-windows nil)
+(setq fast-but-imprecise-scrolling t)
+(setq inhibit-compacting-font-caches t)
+#+end_src 
+* Native compilation
+
+#+begin_src elisp
+(setq package-native-compile t
+			native-comp-deferred-compilation t)
+
+(setq native-comp-eln-load-path
+			(list (expand-file-name "eln-cache" user-emacs-directory)))
+#+end_src
+
+* Package system setup
+Emacs has a built in package manager but it doesn't make it easy to automatically install packages on a new system the first time you pull doun your configuration.
+Because of that, I'll be using [[https://github.com/jwiegley/use-package][use-package]] to ease that process
+
+*NOTE:* Currently disabled because I'm trying out [[https://github.com/raxod502/straight.el][straight.el]] as an alternative.
+
+#+begin_src elisp :tangle no
+;; Initialize package sources
+(require 'package)
+
+(setq package-archives '(("melpa" . "https://melpa.org/packages/")
+         ("org" . "https://orgmode.org/elpa/")
+         ("elpa" . "https://elpa.gnu.org/packages/")))
+
+(package-initialize)
+(unless package-archive-contents
+  (package-refresh-contents))
+
+;; install use-package if not installed yet 
+;;(unless (package-installed-p 'use-package)
+;;  (package-install 'use-package))
+
+;; Initialize use-package
+;;(require 'use-package)
+;;(setq use-package-always-ensure t)
+#+end_src
+
+* Straight.el
+Straight.el is a simple yet powerfull alternative to package.el, which I'm currently trying out.
+
+#+begin_src elisp
+  (unless (featurep 'straight)
+    ;; Bootstrap straight.el
+    (defvar bootstrap-version)
+    (let ((bootstrap-file
+           (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+          (bootstrap-version 5))
+      (unless (file-exists-p bootstrap-file)
+        (with-current-buffer
+            (url-retrieve-synchronously
+             "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+             'silent 'inhibit-cookies)
+          (goto-char (point-max))
+          (eval-print-last-sexp)))
+      (load bootstrap-file nil 'nomessage)))
+
+  ;; Use straight.el for use-package expressions
+  (straight-use-package 'use-package)
+
+  ;; Disabling package.el completely
+  (setq package-enable-at-startup nil)
+#+end_src
+
+** Configuring use-package + straight.el
+
+#+begin_src elisp
+
+(setq straight-use-package-by-default t)
+
+#+end_src            
+
+* Automatic Package Updates
+The auto-package-update package helps us keep our Emacs packages always up to date. After a certain number of days, it will prompt you to remind you to update your packages.
+
+ You can also use =M-x auto-package-update-now= to update at any time.
+
+ #+begin_src elisp
+ (use-package auto-package-update
+   :straight t 
+   :custom
+   (auto-package-update-interval 7)
+   (auto-package-update-prompt-before-update t)
+   (auto-package-update-hide-results t)
+   :config
+   (auto-package-update-maybe)
+   (auto-package-update-at-time "12:35"))
+ #+end_src
+
+* Indentation
+
+#+begin_src elisp
+(setq-default tab-width 4)
+(setq-default standard-indent 4)
+(setq c-basic-offset tab-width)
+(setq-default eletric-indent-inhibit t)
+(setq-default indent-tabs-mode t)
+(setq backward-delete-char-untabify-method 'nil)
+#+end_src
+
+* Bracket pair-matching
+
+#+begin_src elisp
+(setq eletric-pair-pairs '(
+                           (?\{ . ?\})
+                           (?\( . ?\))
+                           (?\[ . ?\])
+                           (?\" . ?\")
+                           ))
+(electric-pair-mode t)
+#+end_src
+
+* Which-key
+Which key helps a lot to remember some keybindings, so I'm going to add it here.
+#+begin_src elisp
+(use-package which-key
+  :init (which-key-mode))
+#+end_src
+* Some cool snippets
+Ima go try testing YASnippet for having some cool snippets in emacs.
+Might disable it later if I doesn't like it.
+
+#+begin_src elisp
+(use-package yasnippet
+  :config
+  (setq yas-snippet-dirs '("~/.emacs.d/snippets"))
+  (yas-global-mode 1))
+#+end_src
+
+* Clipboard fix
+
+#+begin_src elisp
+(setq x-select-enable-clipboard t) 
+#+end_src
+
+* zoom setup ( to use with certain fonts only, envypn doesn't support this well)
+
+#+begin_src elisp
+(global-set-key (kbd "C-=") 'text-scale-increase)
+(global-set-key (kbd "C--") 'text-scale-decrease)
+(global-set-key (kbd "<C-wheel-up>") 'text-scale-increase)
+(global-set-key (kbd "<C-wheel-down>") 'text-scale-decrease)
+#+end_src
+
+* Ace-window for window switching
+
+
+#+begin_src elisp
+(use-package ace-window
+  :init (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l) ;; switching keys to home row
+    aw-char-position 'left
+    aw-ignore-current nil
+    aw-leading-char-style 'char
+    aw-scope 'frame)
+  :bind (("M-o" . ace-window)
+         ("M-O" . ace-swap-window)))
+#+end_src
+
+* Misc stuff
+** Lua mode
+#+begin_src elisp
+(use-package lua-mode)
+#+end_src
+* God-mode
+I'm currently trying out god-mode for reducing modifiers usage. Seems good, but I still don't know if I'll let it here.
+#+BEGIN_SRC elisp
+  (use-package god-mode
+	:bind (("<escape>". god-local-mode)
+			("C-x C-1" . delete-other-windows)
+			("C-x C-2" . split-and-follow-vertically) ;; Function created by me on topic above.
+			("C-x C-3" . split-and-follow-horizontally) ;; Same thing
+			("C-x C-0" . delete-window)
+			:map god-local-mode-map
+			("." . repeat)
+			("u" . undo)
+			("[" . backward-paragraph)
+			("]" . forward-paragraph))
+	:config (god-mode))
+#+END_SRC
+* Creating a new window switches the focus to it
+
+#+begin_src elisp
+ (defun split-and-follow-horizontally ()
+  (interactive)
+  (split-window-below)
+  (balance-windows)
+  (other-window 1))
+ (global-set-key (kbd "C-x 2") 'split-and-follow-horizontally)
+
+ (defun split-and-follow-vertically ()
+  (interactive)
+  (split-window-right)
+  (balance-windows)
+  (other-window 1))
+ (global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
+#+end_src
+
+* Alias yes-or-no questions to y-or-n
+
+#+begin_src elisp
+(setq use-short-answers t)
+#+end_src
+
+* Ease window resizing
+This binds it to Super-Control-<arrow>.
+
+#+begin_src elisp
+(global-set-key (kbd "s-C-<left>") 'shrink-window-horizontally)
+(global-set-key (kbd "s-C-<right>") 'enlarge-window-horizontally)
+(global-set-key (kbd "s-C-<down>") 'shrink-window)
+(global-set-key (kbd "s-C-<up>") 'enlarge-window)
+#+end_src
+
+* Highlight current line
+
+#+begin_src elisp
+(global-hl-line-mode t)
+#+end_src
+
+* Disable auto-save and backup files
+
+#+begin_src elisp
+(setq make-backup-files nil)
+(setq auto-save-default nil)
+#+end_src
+
+* Basic UI configuration
+Just configuring basic UI settings, to make Emacs look a lot more minimal. Basically, I'm "ricing" emacs here.
+
+ #+begin_src elisp
+  (scroll-bar-mode -1) ;; disable visible scrollbar
+  (tool-bar-mode -1) ;; disable toolbar
+  (tooltip-mode -1) ;; disable tooltips
+  (menu-bar-mode -1) ;; disable menubar
+  (set-fringe-mode 10) ;; give some breathing room
+  (blink-cursor-mode 0) ;; disable cursor blinking (annoying)
+
+ ;; visual bell setup
+  (setq visible-bell t)
+
+  (column-number-mode 1)
+  (global-display-line-numbers-mode t)
+  (setq display-line-numbers-mode 'relative)
+
+  ;; Disable line numbers for some modes
+  (dolist (mode '(org-mode-hook
+                  term-mode-hook
+                  shell-mode-hook
+                  treemacs-mode-hook
+                  eshell-mode-hook))
+     (add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+  ;; show parent parentheses
+  (show-paren-mode 1)
+ #+end_src
+
+** Dashboard configuration
+
+*IMPORTANT:* always remember to install =all-the-icons=, or dashboard buffer will crash :D.
+
+#+begin_src elisp
+
+(use-package dashboard
+  :after page-break-lines
+  :config
+  (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
+  (setq dashboard-page-separator "\n\f\n")
+  (setq dashboard-banner-logo-title "Hello, master. How can I serve you?")
+  (setq dashboard-startup-banner "~/.emacs.d/dashboardimg/Sakuya.png")
+  (setq dashboard-set-footer nil)
+  (setq dashboard-center-content t)
+  (setq dashboard-set-heading-icons t)
+  (setq dashboard-set-file-icons t)
+  (setq dashboard-items '((recents . 5) (bookmarks . 5))))
+  (dashboard-setup-startup-hook)
+
+#+end_src
+
+*** Installing all-the-icons (dashboard dep)
+
+#+begin_src elisp
+
+(use-package all-the-icons)
+
+#+end_src
+
+*** Installing page-break-lines (dashboard dep too)
+#+begin_src elisp
+
+(use-package page-break-lines
+  :demand t)
+
+#+end_src
+
+** Font configuration
+
+#+begin_src elisp
+(defun lxgmacs/set-font-faces ()
+  (message "Setting Faces.")
+  (set-face-attribute 'default nil :font "envypn 13")
+  (set-face-attribute 'fixed-pitch nil :font "envypn 10")
+  (set-fontset-font t 'symbol "Symbola" nil))
+
+(if (daemonp)
+    (add-hook 'after-make-frame-functions
+              (lambda (frame)
+                (with-selected-frame frame
+                  (lxgmacs/set-font-faces))))
+  (lxgmacs/set-font-faces))
+#+end_src
+
+*** Font-lock settings
+#+begin_src elisp 
+(custom-set-faces
+	'(font-lock-comment-face ((t (:font "envypn 13" :bold t)))))
+#+end_src
+** Doom-themes
+
+Disabled because I'm actually usign my own colorscheme, based on vim-mellow.
+
+#+begin_src elisp :tangle no
+(use-package doom-themes
+  :straight t 
+  :config
+  (setq doom-themes-enable-bold t
+      doom-themes-enable-italic t)
+  (doom-themes-visual-bell-config)
+  (doom-themes-org-config))
+  (load-theme 'doom-wilmersdorf t)
+#+end_src
+
+** Creating my own theme using autothemer
+
+Autothemer is a emacs utility package that allows you to create your own theme
+in a "easy" and simple way. I'll be testing it.
+
+#+begin_src elisp
+(use-package autothemer
+	:init
+	(load-theme 'mellow-light t))
+#+end_src
+
+** Prettify symbols mode
+
+#+begin_src elisp
+(defun my/org-mode/load-prettify-symbols ()
+  (interactive)
+  (setq prettify-symbols-alist
+        (mapcan (lambda (x) (list x (cons (upcase (car x)) (cdr x))))
+                '(("#+begin_src" . ?)
+                  ("#+end_src" . ?))))
+        (global-prettify-symbols-mode t))
+
+(add-hook 'org-mode-hook 'my/org-mode/load-prettify-symbols)
+
+(global-prettify-symbols-mode t)
+#+end_src
+
+** Rainbow Delimiters
+
+#+begin_src elisp
+(use-package rainbow-delimiters
+  :init
+  (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
+#+end_src
+
+** Rainbow mode
+#+begin_src elisp
+(use-package rainbow-mode)
+#+end_src
+
+** Bespoke-modeline 
+
+Bespoke modeline is a simple, yet beautiful modeline for emacs, based on nano-emacs modeline. 
+*Currently disabled for lambda-modeline*
+
+#+begin_src elisp :tangle no
+(use-package bespoke-modeline
+  :demand t 
+  :straight (:type git :host github :repo "mclear-tools/bespoke-modeline")
+  :hook (after-init . bespoke-modeline-mode)
+  :init
+  ;; Set header line (modeline on top)
+  (setq bespoke-modeline-position 'top)
+  ;; Modeline height
+  (setq bespoke-modeline-size 10)
+  ;; Modeline spacing
+  (setq bespoke-modeline-space-bottom -2)
+  ;; Use visual bell
+  (setq bespoke-modeline-visual-bell t)
+  :config
+  (bespoke-modeline-mode))
+
+#+end_src
+
+** Lambda-line
+
+Lambda-line is a simple and pretty modeline for emacs. It has strong design inspiration from bespoke-modeline.
+
+#+begin_src elisp
+(use-package lambda-line
+	:demand t 
+	:straight (:type git :host github :repo "lambda-emacs/lambda-line")
+	:custom
+	(lambda-line-position 'top) ;; Set modeline position
+	(lambda-line-abbrev t) ;; Abbreviate or not major modes
+	(lambda-line-hspace " ") ;; Add some cushion
+	(lambda-line-prefix t) ;; Use a prefix symbol
+	(lambda-line-prefix-padding t) ;; A little spacing? Yes please 
+	(lambda-line-status-invert nil) ;; No invert colors
+	(lambda-line-space-top +.50) ;; Padding on top and bottom of modeline
+	(lambda-line-space-bottom -.50)
+	(lambda-line-symbol-position 0.1) ;; Adjust the vertical placement of symbol
+	:config
+	;; activate lambda-line
+	(lambda-line-mode)
+	;; set divider line in footer
+	(when (eq lambda-line-position 'top)
+		(setq-default mode-line-format (list "%_"))
+		(setq mode-line-format (list "%_"))))
+#+end_src
+
+*** Fixing lambda-modeline font
+
+With this, we're going to make sure that bespoke-modeline is using the correct font to display glyphs and stuff. *Currently disabled bc
+I already fixed that. 
+
+#+begin_src elisp :tangle no
+(use-package fontset
+  :straight (:type built-in) ;; only needed if you use straight.el
+  :config
+  ;; Use symbola for proper uunicode
+  (when (member "Symbola" (font-family-list))
+    (set-fontset-font
+    t 'symbol "Symbola" nil)))
+#+end_src
+
+** DONE Configure Ivy + Counsel
+
+CLOSED: [2021-05-16 dom 00:00]
+
+#+begin_src elisp
+(use-package ivy
+  :diminish
+  :bind ("C-s" . swiper)
+         ;; :map ivy-minibuffer-map
+         ;; ("TAB" . ivy-alt-done)
+         ;; ("C-l" . ivy-alt-done)
+         ;; ("C-j" . ivy-next-line)
+         ;; ("C-k" . ivy-previous-line)
+         ;; :map ivy-switch-buffer-map
+         ;; ("C-k" . ivy-previous-line)
+         ;; ("C-l" . ivy-done)
+         ;; ("C-d" . ivy-switch-buffer-kill)
+         ;; :map ivy-reverse-i-search-map
+         ;; ("C-k" . ivy-previous-line)
+         ;; ("C-d" . ivy-reverse-i-search-kill))
+  :config
+  (ivy-mode 1))
+
+(use-package ivy-rich
+  :after ivy
+  :init
+  (ivy-rich-mode 1))
+
+(use-package counsel
+  :bind (("C-M-j" . 'counsel-switch-buffer)
+         :map minibuffer-local-map
+         ("C-r" . 'counsel-minibuffer-history))
+  :custom
+  (counsel-linux-app-format-function #'counsel-linux-app-format-function-name-only)
+  :config
+  (counsel-mode 1))
+#+end_src
+
+* Eshell
+** Eshell toggle package
+Package to toggle eshell on a screen side.
+#+begin_src elisp
+(use-package eshell-toggle
+		:demand t
+		:straight (:type git :host github :repo "4DA/eshell-toggle")
+		:bind
+		("s-`" . eshell-toggle))
+#+end_src
+* Org mode configuration
+
+** First, installing org bullets
+
+#+begin_src elisp
+(use-package org-bullets)
+#+end_src
+
+** Org hooks
+
+#+begin_src elisp
+(add-hook 'org-mode-hook (lambda ()
+             (org-bullets-mode 1)
+             (setq org-startup-folded t)
+             (org-toggle-inline-images)
+             (org-indent-mode)))
+#+end_src
+
+** Ox-jekyll-md ( for blog posts )
+
+#+begin_src elisp
+(use-package ox-jekyll-md
+  :init
+  (setq org-jekyll-md-include-yaml-front-matter nil
+      org-jekyll-md-use-todays-date nil))
+#+end_src
+
+** Org-Agenda
+
+#+begin_src elisp
+(setq org-log-done t)
+(setq org-agenda-files '("~/.emacs.d/agenda"))
+
+(global-set-key (kbd "C-c a") 'org-agenda)
+#+end_src
+
+** Syntax highlightening and stuff inside org source blocks
+
+#+begin_src elisp
+(setq org-src-fontify-natively t
+      org-src-tab-acts-natively t
+      org-confirm-babel-evaluate nil
+      org-edit-src-content-indentation 0)
+#+end_src
+
+** Blog project org-setup
+
+#+begin_src elisp
+(setq org-publish-project-alist
+      '(
+      ("lag00n.github.io"
+       ;; path to org files
+       :base-directory "~/github/lag00n.github.io/_org"
+       :base-extension "org"
+       ;; path to jekyll posts
+       :publishing-directory "~/github/lag00n.github.io/_cool_posts"
+       :recursive t
+       :publishing-function org-jekyll-md-publish-to-md
+       :toc nil
+       )))
+#+end_src
+
+** Org mode screenshot
+
+A hack that allow to paste images from clipboard into org files.
+
+#+begin_src elisp
+(defun my-org-screenshot ()
+  "Take a screenshot into a time stamped unique-named
+file in the same directory as the org-buffer and insert a link to this file."
+  (interactive)
+  (setq filename
+        (concat
+         (make-temp-name
+          (concat (buffer-file-name)
+                  "_"
+                  (format-time-string "%Y%m%d_%H%M%S_")) ) ".png"))
+  (call-process "import" nil nil nil filename)
+  (insert (concat "[[" filename "]]"))
+  (org-display-inline-images))
+#+end_src
+
+* Rss with elfeed
+
+Elfeed is a awesome RSS feed reader for emacs. I mainly use it to keep track of some subreddits.
+
+#+begin_src elisp
+(use-package elfeed
+  :config
+  (setq elfeed-feeds
+    '("https://www.reddit.com/r/emacs/.rss"
+      "https://www.reddit.com/r/unixporn/new/.rss?sort=new")))
+#+end_src
+
+* Mail setup with mu4e
+
+Mail setup using mu4e.
+
+#+begin_src elisp :tangle no
+(add-to-list 'load-path "~/.local/share/emacs/site-lisp/mu4e")
+(require 'mu4e)
+;;(require 'smtpmail)
+(setq user-mail-address "lxg00n@paranoid.email"
+      user-full-name "lxg00n"
+      ;;mbsync command to update mail
+      mu4e-get-email-command "mbsync -c ~/.config/mbsync/.mbsyncrc -a"
+      mu4e-update-interval 300
+      send-mail-function 'smtpmail-send-it
+      smtpmail-smtp-server "smtp.paranoid.email"
+      smtpmail-smtp-service "25"
+      smtpmail-stream-type 'starttls
+      mu4e-sent-folder "/lxg00n-paranoid/Sent"
+      mu4e-drafts-folder "/lxg00n-paranoid/Drafts"
+      mu4e-trash-folder "/lxg00n-paranoid/Trash"
+      mu4e-decryption-policy 'ask
+      mu4e-maildir-shortcuts
+      '(("/lxg00n-paranoid/Inbox"      . ?i)
+        ("/lxg00n-paranoid/Sent Items" . ?s)
+        ("/lxg00n-paranoid/Drafts"     . ?d)
+        ("/lxg00n-paranoid/Trash"      . ?t)))
+
+#+end_src
+
