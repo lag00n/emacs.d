@@ -1,0 +1,10 @@
+agenda/
+auto-save-list/
+eshell/
+eln-cache/
+image-dired/
+straight/
+url/
+init.el
+recentf
+bookmarks
