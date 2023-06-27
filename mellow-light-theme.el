@@ -30,7 +30,7 @@
 	(mellow-light-brightmagenta "#8a4b53")
 
 	(mellow-light-cyan "#bf472c")
-  (mellow-light-brightcyan "#d47d49")
+	(mellow-light-brightcyan "#d47d49")
 		
 	(mellow-light-white "#e0ccae")
 	(mellow-light-brightwhite "#f2ddbc"))
