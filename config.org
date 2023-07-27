@@ -207,8 +207,15 @@ I'm currently trying out god-mode for reducing modifiers usage. Seems good, but 
 		 ("u" . undo)
 		 ("[" . backward-paragraph)
 		 ("]" . forward-paragraph))
-  :config (god-mode))
+
+  :hook (post-command-hook lx-god-mode-update-cursor)
+  
+  :config
+  (defun lx-god-mode-update-cursor ()
+  (setq cursor-type (if (or god-local-mode buffer-read-only) 'box 'bar)))
+  (god-mode))
 #+END_SRC
+
 * Creating a new window switches the focus to it
 
 #+begin_src elisp
@@ -329,8 +336,7 @@ Just configuring basic UI settings, to make Emacs look a lot more minimal. Basic
 #+begin_src elisp
 (defun lxgmacs/set-font-faces ()
   (message "Setting Faces.")
-  (set-face-attribute 'default nil :font "Anonymous Pro:pixelsize=14")
-  (set-face-attribute 'fixed-pitch nil :font "envypn 10")
+  (set-face-attribute 'default nil :font "Sudo medium 14")
   (set-fontset-font t 'symbol "Symbola" nil))
 
 (if (daemonp)
@@ -345,8 +351,9 @@ Just configuring basic UI settings, to make Emacs look a lot more minimal. Basic
 Here I'm just making all comments in code display bold. Easy and cool.
 #+begin_src elisp 
 (custom-set-faces
-	'(font-lock-comment-face ((t (:font "Anonymous Pro:pixelsize=14" :bold t :italic t)))))
+ 	'(font-lock-comment-face ((t (:font "Sudo medium 14" :bold t :italic t)))))
 #+end_src
+
 ** Doom-themes
 
 Disabled because I'm actually usign my own colorscheme, based on vim-mellow.
@@ -610,6 +617,11 @@ Elfeed is a awesome RSS feed reader for emacs. I mainly use it to keep track of 
 	  "https://www.reddit.com/r/unixporn/new/.rss?sort=new")))
 #+end_src
 
+* Golang package
+#+BEGIN_SRC elisp
+(use-package go-mode
+  :ensure t)
+#+END_SRC
 * Mail setup with mu4e
 
 Mail setup using mu4e.
