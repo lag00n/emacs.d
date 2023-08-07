@@ -105,15 +105,16 @@ The auto-package-update package helps us keep our Emacs packages always up to da
  You can also use =M-x auto-package-update-now= to update at any time.
 
  #+begin_src elisp
-(use-package auto-package-update
-  :straight t
-  :custom
-  (auto-package-update-interval 7)
-  (auto-package-update-prompt-before-update t)
-  (auto-package-update-hide-results t)
-  :config
-  (auto-package-update-maybe)
-  (auto-package-update-at-time "12:35"))
+ (use-package auto-package-update
+   :straight t
+   :custom
+   (auto-package-update-interval 7)
+   (auto-package-update-prompt-before-update t)
+   (auto-package-update-hide-results t)
+   (auto-package-update-delete-old-versions t)
+   :config
+   (auto-package-update-maybe)
+   (auto-package-update-at-time "12:35"))
  #+end_src
 
 * Indentation
@@ -151,6 +152,7 @@ Might disable it later if I doesn't like it.
 
 #+begin_src elisp
 (use-package yasnippet
+  :defer nil
   :config
   (setq yas-snippet-dirs '("~/.emacs.d/snippets"))
   (yas-global-mode 1))
@@ -197,6 +199,7 @@ Might disable it later if I doesn't like it.
 I'm currently trying out god-mode for reducing modifiers usage. Seems good, but I still don't know if I'll let it here.
 #+BEGIN_SRC elisp
 (use-package god-mode
+  :defer nil
   :bind (("<escape>". god-local-mode)
 		 ("C-x C-1" . delete-other-windows)
 		 ("C-x C-2" . split-and-follow-vertically) ;; Function created by me on topic above.
@@ -223,7 +226,6 @@ section of god-mode package above.
 (defun my-god-mode-update-cursor-type ()
 	  (setq cursor-type (if (or god-local-mode buffer-read-only) 'box 'bar)))
 #+END_SRC
-  
 
 * Creating a new window switches the focus to it
 
@@ -292,52 +294,51 @@ Just configuring basic UI settings, to make Emacs look a lot more minimal. Basic
 
  ;; Disable line numbers for some modes
  (dolist (mode '(org-mode-hook
-				 term-mode-hook
-				 shell-mode-hook
-				 treemacs-mode-hook
-				 eshell-mode-hook))
+                 term-mode-hook
+                 shell-mode-hook
+                 treemacs-mode-hook
+                 eshell-mode-hook))
    (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
  ;; show parent parentheses
  (show-paren-mode 1)
+
+ ;; Delete selected region when input
+ (delete-selection-mode 1)
  #+end_src
 
 ** Dashboard configuration
 
 *IMPORTANT:* always remember to install =all-the-icons=, or dashboard buffer will crash :D.
 
-#+begin_src elisp
-
+#+BEGIN_SRC elisp
 (use-package dashboard
   :after page-break-lines
   :config
-  (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
-  (setq dashboard-page-separator "\n\f\n")
-  (setq dashboard-banner-logo-title "Hello, master. How can I serve you?")
-  (setq dashboard-startup-banner "~/.emacs.d/dashboardimg/Sakuya.png")
-  (setq dashboard-set-footer nil)
-  (setq dashboard-center-content t)
-  (setq dashboard-set-heading-icons t)
-  (setq dashboard-set-file-icons t)
-  (setq dashboard-items '((recents . 5) (bookmarks . 5))))
-  (dashboard-setup-startup-hook)
-
-#+end_src
+  (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*"))
+		dashboard-page-separator "\n\f\n"
+		dashboard-banner-logo-title "Hello, lxg00n! Have a good coding session!"
+		dashboard-startup-banner "~/.emacs.d/dashboardimg/Sakuya.png"
+		dashboard-set-footer nil
+		dashboard-center-content t
+		dashboard-set-heading-icons t
+		dashboard-set-file-icons t
+		dashboard-week-agenda t
+		dashboard-filter-agenda-entry 'dashboard-no-filter-agenda
+		dashboard-items '((recents . 5)(bookmarks . 5)(agenda . 5)))
+  (dashboard-setup-startup-hook))
+#+END_SRC
 
 *** Installing all-the-icons (dashboard dep)
 
 #+begin_src elisp
-
 (use-package all-the-icons)
-
 #+end_src
 
 *** Installing page-break-lines (dashboard dep too)
 #+begin_src elisp
-
 (use-package page-break-lines
   :demand t)
-
 #+end_src
 
 ** Font configuration
@@ -490,29 +491,20 @@ CLOSED: [2021-05-16 dom 00:00]
 
 #+begin_src elisp
 (use-package ivy
-  :diminish
+  ;; :diminish
+  :defer nil
   :bind ("C-s" . swiper)
-		 ;; :map ivy-minibuffer-map
-		 ;; ("TAB" . ivy-alt-done)
-		 ;; ("C-l" . ivy-alt-done)
-		 ;; ("C-j" . ivy-next-line)
-		 ;; ("C-k" . ivy-previous-line)
-		 ;; :map ivy-switch-buffer-map
-		 ;; ("C-k" . ivy-previous-line)
-		 ;; ("C-l" . ivy-done)
-		 ;; ("C-d" . ivy-switch-buffer-kill)
-		 ;; :map ivy-reverse-i-search-map
-		 ;; ("C-k" . ivy-previous-line)
-		 ;; ("C-d" . ivy-reverse-i-search-kill))
   :config
   (ivy-mode 1))
 
 (use-package ivy-rich
-  :after ivy
-  :init
+  :defer nil
+  :after counsel
+  :config
   (ivy-rich-mode 1))
 
 (use-package counsel
+  :defer nil
   :bind (("C-M-j" . 'counsel-switch-buffer)
 		 :map minibuffer-local-map
 		 ("C-r" . 'counsel-minibuffer-history))
@@ -533,18 +525,30 @@ Package to toggle eshell on a screen side.
 		("s-`" . eshell-toggle))
 #+end_src
 * Org mode configuration
+** First, installing org +bullets+ superstar
 
-** First, installing org bullets
+I've switched from org-bullets to org-superstar since they're pretty
+similar and org-superstar offers more options.
 
 #+begin_src elisp
-(use-package org-bullets)
+(use-package org-superstar)
 #+end_src
+
+** Binding org-toggle-narrow-to-subtree
+
+I'm changing the bindings =C-x n s (org-narrow-to-subtree)= and =C-x n w (widen)= to a simple
+function that does the same thing: _"focus/zoom" into a specific header and it's subtree_.
+
+#+BEGIN_SRC elisp
+(with-eval-after-load 'org
+  (define-key org-mode-map (kbd "C-x n s") #'org-toggle-narrow-to-subtree))
+#+END_SRC
 
 ** Org hooks
 
 #+begin_src elisp
 (add-hook 'org-mode-hook (lambda ()
-			 (org-bullets-mode 1)
+			 (org-superstar-mode 1)
 			 (setq org-startup-folded t)
 			 (org-toggle-inline-images)
 			 (org-indent-mode)))
@@ -563,8 +567,17 @@ Package to toggle eshell on a screen side.
 
 #+begin_src elisp
 (setq org-log-done t)
-(setq org-agenda-files '("~/.emacs.d/agenda"))
 
+(if (eq system-type 'windows-nt)
+	(setq org-agenda-files '("c:/Users/meninos/Documents/Files/org_agenda"))
+  (setq org-agenda-files '("~/.emacs.d/agenda")))
+
+(setq org-lowest-priority ?F ;; Set lowest priority level for TODO's
+	  org-todo-keywords '((sequence "TODO(t)" "|" "DONE(d)")
+						  (sequence "READ(r)" "|" "READEN(.)")
+						  (sequence "SHOP(s)" "|" "BOUGHT(b)")
+						  (sequence "PROJECT(p)" "|" "FINISHED(f)")
+						  (sequence "|" "CANCELED(c)")))
 (global-set-key (kbd "C-c a") 'org-agenda)
 #+end_src
 
@@ -622,8 +635,9 @@ Elfeed is a awesome RSS feed reader for emacs. I mainly use it to keep track of 
 (use-package elfeed
   :config
   (setq elfeed-feeds
-	'("https://www.reddit.com/r/emacs/.rss"
-	  "https://www.reddit.com/r/unixporn/new/.rss?sort=new")))
+		'("https://www.reddit.com/r/emacs/.rss"
+		  "https://www.reddit.com/r/unixporn/new/.rss?sort=new")
+		elfeed-use-curl t))
 #+end_src
 
 * Golang package

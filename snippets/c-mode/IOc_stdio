@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: basic IO C file
+# key: /ioc
+# --
+
+#include <stdio.h>
+
+int main(void){
+$0
+}
