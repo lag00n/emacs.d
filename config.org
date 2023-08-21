@@ -346,7 +346,7 @@ Just configuring basic UI settings, to make Emacs look a lot more minimal. Basic
 #+begin_src elisp
 (defun lxgmacs/set-font-faces ()
   (message "Setting Faces.")
-  (set-face-attribute 'default nil :font "Sudo medium 14")
+  (set-face-attribute 'default nil :font "Sudo light 14")
   (set-fontset-font t 'symbol "Symbola" nil))
 
 (if (daemonp)
@@ -361,7 +361,7 @@ Just configuring basic UI settings, to make Emacs look a lot more minimal. Basic
 Here I'm just making all comments in code display bold. Easy and cool.
 #+begin_src elisp 
 (custom-set-faces
- 	'(font-lock-comment-face ((t (:font "Sudo medium 14" :bold t :italic t)))))
+ 	'(font-lock-comment-face ((t (:font "Sudo light 14" :bold t :italic t)))))
 #+end_src
 
 ** Doom-themes
@@ -576,7 +576,7 @@ function that does the same thing: _"focus/zoom" into a specific header and it's
 	  org-todo-keywords '((sequence "TODO(t)" "|" "DONE(d)")
 						  (sequence "READ(r)" "|" "READEN(.)")
 						  (sequence "SHOP(s)" "|" "BOUGHT(b)")
-						  (sequence "PROJECT(p)" "|" "FINISHED(f)")
+						  (sequence "PROJ(p)" "|" "FINISHED(f)")
 						  (sequence "|" "CANCELED(c)")))
 (global-set-key (kbd "C-c a") 'org-agenda)
 #+end_src
