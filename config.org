@@ -206,7 +206,9 @@ I'm currently trying out god-mode for reducing modifiers usage. Seems good, but 
 		 ("C-x C-3" . split-and-follow-horizontally) ;; Same thing
 		 ("C-x C-0" . delete-window)
 		 :map god-local-mode-map
-		 ("." . repeat)
+		 ("," . repeat)
+		 ("." . backward-word)
+		 (";" . forward-word)
 		 ("u" . undo)
 		 ("[" . backward-paragraph)
 		 ("]" . forward-paragraph))
@@ -224,7 +226,8 @@ section of god-mode package above.
 
 #+BEGIN_SRC elisp
 (defun my-god-mode-update-cursor-type ()
-	  (setq cursor-type (if (or god-local-mode buffer-read-only) 'box 'bar)))
+  "Update cursor color based on whether godmode is active or not."
+  (set-cursor-color (if (or god-local-mode buffer-read-only) "#0f0908" "#ff7477")))
 #+END_SRC
 
 * Creating a new window switches the focus to it
