@@ -1,5 +1,5 @@
 #+TITLE: my emacs config, written in org.
-#+PROPERTY: header-args:elisp :tangle ./init.el 
+#+PROPERTY: header-args:elisp :tangle ./init.el :results none
 #+STARTUP: overview
 
 * Welcome to my config!
@@ -197,7 +197,7 @@ Might disable it later if I doesn't like it.
 #+end_src
 * God-mode
 I'm currently trying out god-mode for reducing modifiers usage. Seems good, but I still don't know if I'll let it here.
-#+BEGIN_SRC elisp
+#+BEGIN_SRC elisp :results none
 (use-package god-mode
   :defer nil
   :bind (("<escape>". god-local-mode)
@@ -205,19 +205,20 @@ I'm currently trying out god-mode for reducing modifiers usage. Seems good, but 
 		 ("C-x C-2" . split-and-follow-vertically) ;; Function created by me on topic above.
 		 ("C-x C-3" . split-and-follow-horizontally) ;; Same thing
 		 ("C-x C-0" . delete-window)
+		 ("C-x np" . dired)
 		 :map god-local-mode-map
 		 ("," . repeat)
-		 ("." . backward-word)
-		 (";" . forward-word)
+		 ("." . backward-word) ;; Go to previous word start.
+		 (";" . forward-to-word) ;; Go to next word start.
 		 ("u" . undo)
 		 ("[" . backward-paragraph)
 		 ("]" . forward-paragraph))
-
+		
   :config
-  (add-hook 'post-command-hook #'my-god-mode-update-cursor-type)
+  (add-hook 'post-command-hook #'lxmacs-god-mode-update-cursor-type)
+  (setq god-exempt-predicate (lambda () (not (equal (this-command-keys) "q"))))
   (god-mode))
 #+END_SRC
-
 ** God-mode box/bar cursor function
 
 This function turns the box cursor in a bar when god-mode is disabled
@@ -225,7 +226,7 @@ This function turns the box cursor in a bar when god-mode is disabled
 section of god-mode package above.
 
 #+BEGIN_SRC elisp
-(defun my-god-mode-update-cursor-type ()
+(defun lxmacs-god-mode-update-cursor-type ()
   "Update cursor color based on whether godmode is active or not."
   (set-cursor-color (if (or god-local-mode buffer-read-only) "#0f0908" "#ff7477")))
 #+END_SRC
@@ -306,6 +307,8 @@ Just configuring basic UI settings, to make Emacs look a lot more minimal. Basic
  ;; show parent parentheses
  (show-paren-mode 1)
 
+ ;; Set inicial path so It works on multiplatforms
+ (setq inicial-directory "~/")
  ;; Delete selected region when input
  (delete-selection-mode 1)
  #+end_src
@@ -349,7 +352,7 @@ Just configuring basic UI settings, to make Emacs look a lot more minimal. Basic
 #+begin_src elisp
 (defun lxgmacs/set-font-faces ()
   (message "Setting Faces.")
-  (set-face-attribute 'default nil :font "Sudo light 14")
+  (set-face-attribute 'default nil :font "Cascadia Code PL Cursive-12")
   (set-fontset-font t 'symbol "Symbola" nil))
 
 (if (daemonp)
@@ -361,10 +364,14 @@ Just configuring basic UI settings, to make Emacs look a lot more minimal. Basic
 #+end_src
 
 *** Font-lock settings
-Here I'm just making all comments in code display bold. Easy and cool.
-#+begin_src elisp 
+Here I'm just making all comments in code display bold and italic. If the font has it, I like to keep comments cursive too. Easy and cool.
+*IMPORTANT: by default, this font =Cascadia Code Cursive= doesn't exists. It's a patched version made by me using [[https://github.com/twardoch/fonttools-opentype-feature-freezer/][fonttools-opentype-feature-freeze]] because, as most applications,
+Emacs still doesn't support some OpenType features like stylistic sets (or style sets) that are used by Cascadia to alternate between normal Italic and Cursive.*
+That isn't the best approach but until Emacs doesn't support this natively, it's a good approach.
+
+#+begin_src elisp
 (custom-set-faces
- 	'(font-lock-comment-face ((t (:font "Sudo light 14" :bold t :italic t)))))
+ '(font-lock-comment-face ((t (:font "Cascadia Code PL Cursive-12" :italic t :bold t)))))
 #+end_src
 
 ** Doom-themes
@@ -461,8 +468,8 @@ Lambda-line is a simple and pretty modeline for emacs. It has strong design insp
 	(lambda-line-prefix t) ;; Use a prefix symbol
 	(lambda-line-prefix-padding t) ;; A little spacing? Yes please 
 	(lambda-line-status-invert nil) ;; No invert colors
-	(lambda-line-space-top +.50) ;; Padding on top and bottom of modeline
-	(lambda-line-space-bottom -.50)
+	(lambda-line-space-top +.30) ;; Padding on top and bottom of modeline
+	(lambda-line-space-bottom -.25)
 	(lambda-line-symbol-position 0.1) ;; Adjust the vertical placement of symbol
 	:config
 	;; activate lambda-line
@@ -482,17 +489,18 @@ I already fixed that.
 (use-package fontset
   :straight (:type built-in) ;; only needed if you use straight.el
   :config
-  ;; Use symbola for proper uunicode
+  ;; Use symbola for proper unicode
   (when (member "Symbola" (font-family-list))
 	(set-fontset-font
 	t 'symbol "Symbola" nil)))
 #+end_src
 
 ** DONE Configure Ivy + Counsel
-
+For some reasons, I'm trying to change from Ivy+Counsel+Swiper to vertico, because
+it seems a better option at the moment (and a faster one too).
 CLOSED: [2021-05-16 dom 00:00]
 
-#+begin_src elisp
+#+begin_src elisp :tangle no
 (use-package ivy
   ;; :diminish
   :defer nil
@@ -517,6 +525,132 @@ CLOSED: [2021-05-16 dom 00:00]
   (counsel-mode 1))
 #+end_src
 
+** Vertico
+#+BEGIN_SRC elisp
+(defun lx-minibuffer-backward-kill (arg)
+  "When minibuffer is completing a file name delete up to parent folder,
+otherwise delete a word"
+  (interactive "p")
+  (if minibuffer-completing-file-name
+	  (if (string-match-p "/." (minibuffer-contents))
+		  (zap-up-to-char (- arg) ?/)
+		(delete-minibuffer-contents))
+	(backward-kill-word arg)))
+
+(use-package vertico
+  :straight (vertico :files (:defaults "extensions/*")
+					 :includes(vertico-indexed
+							   vertico-flat
+							   vertico-grid
+							   vertico-mouse
+							   vertico-quick
+							   vertico-buffer
+							   vertico-repeat
+							   vertico-reverse
+							   vertico-directory
+							   vertico-multiform
+							   vertico-unobtrusive
+							   ))
+  :defer nil
+  :init
+  (vertico-mode)
+  :custom
+  (vertico-cycle t)
+  :config
+  (setq vertico-resize t
+		vertico-count 8)
+  (vertico-multiform-mode)
+  :bind(:map vertico-map
+			 ("C-j" . vertico-next)
+			 ("C-k" . vertico-previous)
+			 ("C-f" . vertico-exit)
+        :map minibuffer-local-map
+			 ("M-h" . lx-minibuffer-backward-kill)))
+
+(use-package orderless
+  :defer nil
+  :init
+  (setq completion-styles '(orderless basic)
+		completion-category-defaults nil
+		completion-category-overrides '((file (styles partial-completion))))
+  :custom
+  (orderless-matching-styles
+   '(orderless-literal
+	 orderless-prefixes
+	 orderless-flex
+	 orderless-initialism)))
+;;	 orderless-regexp
+
+(use-package marginalia
+  :defer nil
+  :after vertico
+  :init
+  (marginalia-mode)
+  :config
+  (setq marginalia-annotators '(marginalia-annotators-heavy))
+  :custom-face
+  (marginalia-documentation ((t (:italic t)))))
+
+(use-package consult
+  :bind (("M-y" . consult-yank-pop)
+		 ("C-s" . consult-line)
+		 ("C-c h" . consult-history)
+		 ("C-c b" . consult-bookmark)
+		 ("C-c k" . consult-kmacro)
+		 ("C-c m" . consult-mark)
+		 ("C-c M" . consult-global-mark)
+		 ("C-c M-:" . consult-complex-command)
+		 ("C-c i" . consult-imenu)
+		 ("C-x b" . consult-buffer)
+		 :map minibuffer-local-map
+		 ("C-r" . consult-history))
+  :custom
+  (completion-in-region-function #'consult-completion-in-region)
+  :config
+  (consult-preview-at-point-mode))
+#+END_SRC
+
+** In-buffer completion with *corfu*
+I'm actually using corfu for some nice in-buffer completion popups.
+#+BEGIN_SRC elisp
+(use-package corfu
+  :custom
+  (corfu-preview-current nil)
+  (corfu-separator ?\s)
+  (corfu-cycle t)
+  (corfu-compact t)
+  (corfu-quit-at-boundary 'separator)
+  (corfu-minimum-prefix-lenght 2)
+  (corfu-echo-documentation t)
+  (corfu-echo-delay 0.2)
+  (corfu-quit-no-match t)
+  (corfu-preselect-first nil)
+  
+  :bind(:map corfu-map
+			 ("M-SPC" . corfu-insert-separator)
+			 ("TAB" . corfu-next)
+			 ("[tab]" . corfu-next)
+			 ("[backtab]" . corfu-previous)
+			 ("S-TAB" . corfu-previous)
+			 ("S-<return>" . corfu-insert))
+  :init
+  (global-corfu-mode))
+#+END_SRC
+
+*** Use Cape with Corfu!
+#+BEGIN_SRC elisp
+(use-package cape
+  :bind(("C-c p p" . completion-at-point)
+		("C-c p d" . cape-dabbrev)
+		("C-c p f" . cape-file)
+		("C-c p l" . cape-line))
+  :init
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+  (add-to-list 'completion-at-point-functions #'cape-file)
+  (add-to-list 'completion-at-point-functions #'cape-line))
+#+END_SRC
+
+** TODO Configure multi-cursors-package.
 * Eshell
 ** Eshell toggle package
 Package to toggle eshell on a screen side.
@@ -525,7 +659,7 @@ Package to toggle eshell on a screen side.
 		:demand t
 		:straight (:type git :host github :repo "4DA/eshell-toggle")
 		:bind
-		("s-`" . eshell-toggle))
+		("C-c e" . eshell-toggle))
 #+end_src
 * Org mode configuration
 ** First, installing org +bullets+ superstar
@@ -647,6 +781,44 @@ Elfeed is a awesome RSS feed reader for emacs. I mainly use it to keep track of 
 #+BEGIN_SRC elisp
 (use-package go-mode
   :ensure t)
+#+END_SRC
+
+* Some misc stuff
+** Select line function
+Here's a simple function, inspired by Xah Lee's one, that selects the entire line.
+#+BEGIN_SRC elisp
+(defun lx-select-line ()
+  "Selects the current line. It's a good idea to bind it to some keybind."
+  (interactive)
+  (if (region-active-p)
+	  (if visual-line-mode
+		  (let ((xp1 (point)))
+			(end-of-visual-line 1)
+			(when (eq xp1 (point))
+			  (end-of-visual-line 2)))
+		(progn
+		  (forward-line 1)
+		  (end-of-line)))
+	(if visual-line-mode
+		(progn (beginning-of-visual-line)
+			   (push-mark (point) t t)
+			   (end-of-visual-line))
+	  (progn
+		(push-mark (line-beginning-position) t t)
+		(end-of-line)))))
+#+END_SRC
+
+*** Binding it to =C-c l=
+#+BEGIN_SRC elisp
+(global-set-key (kbd "C-c l") 'lx-select-line)
+#+END_SRC
+
+** Creating my own prefix
+Here I'm creating my own prefix to emacs so I can bind some functions of mine and work with god-mode.
+That's why the prefix is =C-x C-d=, because I think It will be good to just press =x d= using god-mode.
+#+BEGIN_SRC elisp
+(define-prefix-command 'lx-prefix-keymap)
+(global-set-key (kbd "C-x C-d") 'lx-prefix-keymap)
 #+END_SRC
 * Mail setup with mu4e
 
