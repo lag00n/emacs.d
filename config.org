@@ -1,7 +1,6 @@
-#+TITLE: my emacs config, written in org.
+#+TITLE: My emacs config, written in org.
 #+PROPERTY: header-args:elisp :tangle ./init.el :results none
 #+STARTUP: overview
-
 * Welcome to my config!
 That's my emacs config, written in org. This file generates [[file:init.el][init.el]] which will be loaded by emacs at startup.
 Whitout futher ado, let's get started!
@@ -152,18 +151,16 @@ Might disable it later if I doesn't like it.
 
 #+begin_src elisp
 (use-package yasnippet
-  :defer nil
+  :demand
   :config
   (setq yas-snippet-dirs '("~/.emacs.d/snippets"))
   (yas-global-mode 1))
 #+end_src
-
 * Clipboard fix
 
 #+begin_src elisp
 (setq x-select-enable-clipboard t) 
 #+end_src
-
 * zoom setup ( to use with certain fonts only, envypn doesn't support this well)
 
 #+begin_src elisp
@@ -179,7 +176,7 @@ Might disable it later if I doesn't like it.
 #+begin_src elisp
 (use-package ace-window
   :custom-face
-  (aw-leading-char-face ((t (:inherit ace-jump-face-foreground :height 3.0))))
+  (aw-leading-char-face ((t (:inherit ace-jump-face-foreground :height 1.5))))
   :init (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l) ;; switching keys to home row
 			  aw-char-position 'left
 			  aw-dispatch-always t
@@ -190,21 +187,17 @@ Might disable it later if I doesn't like it.
 		 ("M-O" . ace-swap-window)))
 #+end_src
 
-* Misc stuff
-** Lua mode
-#+begin_src elisp
-(use-package lua-mode)
-#+end_src
 * God-mode
 I'm currently trying out god-mode for reducing modifiers usage. Seems good, but I still don't know if I'll let it here.
-#+BEGIN_SRC elisp :results none
+#+BEGIN_SRC elisp
 (use-package god-mode
-  :defer nil
+  :demand
   :bind (("<escape>". god-local-mode)
 		 ("C-x C-1" . delete-other-windows)
 		 ("C-x C-2" . split-and-follow-vertically) ;; Function created by me on topic above.
 		 ("C-x C-3" . split-and-follow-horizontally) ;; Same thing
 		 ("C-x C-0" . delete-window)
+		 ("C-r" . lx-jump-and-godexit)
 		 ("C-x np" . dired)
 		 :map god-local-mode-map
 		 ("," . repeat)
@@ -212,8 +205,8 @@ I'm currently trying out god-mode for reducing modifiers usage. Seems good, but 
 		 (";" . forward-to-word) ;; Go to next word start.
 		 ("u" . undo)
 		 ("[" . backward-paragraph)
-		 ("]" . forward-paragraph))
-		
+		 ("]" . forward-paragraph)
+		 ("V" . scroll-down))
   :config
   (add-hook 'post-command-hook #'lxmacs-god-mode-update-cursor-type)
   (setq god-exempt-predicate (lambda () (not (equal (this-command-keys) "q"))))
@@ -222,31 +215,33 @@ I'm currently trying out god-mode for reducing modifiers usage. Seems good, but 
 ** God-mode box/bar cursor function
 
 This function turns the box cursor in a bar when god-mode is disabled
-(and typing is active). This function is called in a hook on ~:config~
+(and typing is active). This function is called in a hook on =:config=
 section of god-mode package above.
 
 #+BEGIN_SRC elisp
 (defun lxmacs-god-mode-update-cursor-type ()
-  "Update cursor color based on whether godmode is active or not."
+  "Update cursor color based on whether god-mode is active or not."
   (set-cursor-color (if (or god-local-mode buffer-read-only) "#0f0908" "#ff7477")))
 #+END_SRC
 
 * Creating a new window switches the focus to it
 
 #+begin_src elisp
-(defun split-and-follow-horizontally ()
+(defun lx-split-and-follow-horizontally ()
+  "Create a new horizontal split and focus it."
   (interactive)
   (split-window-below)
   (balance-windows)
   (other-window 1))
-(global-set-key (kbd "C-x 2") 'split-and-follow-horizontally)
+;;(global-set-key (kbd "C-x 2") 'split-and-follow-horizontally)
 
-(defun split-and-follow-vertically ()
+(defun lx-split-and-follow-vertically ()
+  "Create a new vertical split and focus it."
   (interactive)
   (split-window-right)
   (balance-windows)
   (other-window 1))
-(global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
+;;(global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
 #+end_src
 
 * Alias yes-or-no questions to y-or-n
@@ -276,9 +271,30 @@ This binds it to Super-Control-<arrow>.
 #+begin_src elisp
 (setq make-backup-files nil)
 (setq auto-save-default nil)
-#+end_src
+(if (eq system-type 'windows-nt)
+	(setq user-emacs-directory (expand-file-name "C:/Users/meninos/AppData/Roaming/.emacs.d/miscfolders"))
+  (setq user-emacs-directory (expand-file-name "~/.cache/emacs")))
 
-* Basic UI configuration
+(setq url-history-file (expand-file-name "url/history" user-emacs-directory))
+#+END_SRC
+
+** TODO Use no-littering to automatically set common paths to the new user-emacs-directory
+Still gotta configurate that.
+#+BEGIN_SRC elisp :tangle no
+(use-package no-littering)
+#+END_SRC
+
+** Keep customization settings in a temporary file (taken from Ambrevar!)
+
+#+BEGIN_SRC elisp :tangle no
+(setq custom-file
+	  (if (boundp 'server-socket-dir)
+		  (expand-file-name "custom.el" server-socket-dir)
+		(expand-file-name (format "emacs-custom-%s.el" (user-vid)) temporary-file-directory)))
+(load custom-file t)
+#+END_SRC
+
+* UI configuration and some minibuffer and quality-of-life packages.
 Just configuring basic UI settings, to make Emacs look a lot more minimal. Basically, I'm "ricing" emacs here.
 
  #+begin_src elisp
@@ -309,6 +325,7 @@ Just configuring basic UI settings, to make Emacs look a lot more minimal. Basic
 
  ;; Set inicial path so It works on multiplatforms
  (setq inicial-directory "~/")
+
  ;; Delete selected region when input
  (delete-selection-mode 1)
  #+end_src
@@ -342,11 +359,11 @@ Just configuring basic UI settings, to make Emacs look a lot more minimal. Basic
 #+end_src
 
 *** Installing page-break-lines (dashboard dep too)
+
 #+begin_src elisp
 (use-package page-break-lines
-  :demand t)
+  :demand)
 #+end_src
-
 ** Font configuration
 
 #+begin_src elisp
@@ -407,8 +424,8 @@ in a "easy" and simple way. I'll be testing it.
   (interactive)
   (setq prettify-symbols-alist
 		(mapcan (lambda (x) (list x (cons (upcase (car x)) (cdr x))))
-				'(("#+begin_src" . ?)
-				  ("#+end_src" . ?))))
+				'(("#+begin_src" . ?)
+				  ("#+end_src" . ?))))
 		(global-prettify-symbols-mode t))
 
 (add-hook 'org-mode-hook 'my/org-mode/load-prettify-symbols)
@@ -436,7 +453,7 @@ Bespoke modeline is a simple, yet beautiful modeline for emacs, based on nano-em
 
 #+begin_src elisp :tangle no
 (use-package bespoke-modeline
-  :demand t 
+  :demand
   :straight (:type git :host github :repo "mclear-tools/bespoke-modeline")
   :hook (after-init . bespoke-modeline-mode)
   :init
@@ -459,17 +476,20 @@ Lambda-line is a simple and pretty modeline for emacs. It has strong design insp
 
 #+begin_src elisp
 (use-package lambda-line
-	:demand t 
+	:demand
 	:straight (:type git :host github :repo "lambda-emacs/lambda-line")
 	:custom
-	(lambda-line-position 'top) ;; Set modeline position
+	(lambda-line-icon-time t)
+	(lambda-line-icon-time nil)
+	(lambda-line-clockface-update-fontset "ClockFaceRect")
+	(lambda-line-position 'bottom) ;; Set modeline position
 	(lambda-line-abbrev t) ;; Abbreviate or not major modes
 	(lambda-line-hspace " ") ;; Add some cushion
 	(lambda-line-prefix t) ;; Use a prefix symbol
-	(lambda-line-prefix-padding t) ;; A little spacing? Yes please 
+	(lambda-line-prefix-padding t) ;; A little spacing? Yes please
 	(lambda-line-status-invert nil) ;; No invert colors
 	(lambda-line-space-top +.30) ;; Padding on top and bottom of modeline
-	(lambda-line-space-bottom -.25)
+	(lambda-line-space-bottom -.30)
 	(lambda-line-symbol-position 0.1) ;; Adjust the vertical placement of symbol
 	:config
 	;; activate lambda-line
@@ -480,6 +500,20 @@ Lambda-line is a simple and pretty modeline for emacs. It has strong design insp
 		(setq mode-line-format (list "%_"))))
 #+end_src
 
+*** Function to toggle lambda-line's position
+With this function, you can set a binding or just invoke it using =M-x= to change lambda-line's position between top and bottom.
+#+BEGIN_SRC elisp
+(defun lx-toggle-lambdaline-position ()
+  "Toggle lambda-line's position between 'top and 'bottom based on actual value"
+  (interactive)
+  (setq lambda-line-position
+		(if (eq lambda-line-position 'top)
+			'bottom
+		'top))
+  (message "Changing Lambda-line's position to: %S" lambda-line-position)
+  (lambda-line-mode 'toggle) ;; Running it two times to refresh lambda-line's position correctly. It's a temporary workaround, gotta find a better option to achieve this.
+  (lambda-line-mode 'toggle))
+#+END_SRC
 *** Fixing lambda-modeline font
 
 With this, we're going to make sure that bespoke-modeline is using the correct font to display glyphs and stuff. *Currently disabled bc
@@ -503,19 +537,19 @@ CLOSED: [2021-05-16 dom 00:00]
 #+begin_src elisp :tangle no
 (use-package ivy
   ;; :diminish
-  :defer nil
+  :demand
   :bind ("C-s" . swiper)
   :config
   (ivy-mode 1))
 
 (use-package ivy-rich
-  :defer nil
+  :demand
   :after counsel
   :config
   (ivy-rich-mode 1))
 
 (use-package counsel
-  :defer nil
+  :demand
   :bind (("C-M-j" . 'counsel-switch-buffer)
 		 :map minibuffer-local-map
 		 ("C-r" . 'counsel-minibuffer-history))
@@ -551,7 +585,7 @@ otherwise delete a word"
 							   vertico-multiform
 							   vertico-unobtrusive
 							   ))
-  :defer nil
+  :demand
   :init
   (vertico-mode)
   :custom
@@ -568,7 +602,6 @@ otherwise delete a word"
 			 ("M-h" . lx-minibuffer-backward-kill)))
 
 (use-package orderless
-  :defer nil
   :init
   (setq completion-styles '(orderless basic)
 		completion-category-defaults nil
@@ -582,7 +615,6 @@ otherwise delete a word"
 ;;	 orderless-regexp
 
 (use-package marginalia
-  :defer nil
   :after vertico
   :init
   (marginalia-mode)
@@ -601,7 +633,9 @@ otherwise delete a word"
 		 ("C-c M" . consult-global-mark)
 		 ("C-c M-:" . consult-complex-command)
 		 ("C-c i" . consult-imenu)
+		 ("C-c y" . consult-yank-replace)
 		 ("C-x b" . consult-buffer)
+		 ("C-x c e" . consult-compile-error)
 		 :map minibuffer-local-map
 		 ("C-r" . consult-history))
   :custom
@@ -614,18 +648,30 @@ otherwise delete a word"
 I'm actually using corfu for some nice in-buffer completion popups.
 #+BEGIN_SRC elisp
 (use-package corfu
+  ;; Adding some corfu extensions to the base corfu
+  :straight (:files (:defaults "extensions/*")
+					:includes (corfu-popupinfo))
+  :hook
+  ((prog-mode-hook . corfu-mode)
+   (corfu-mode-hook . corfu-popupinfo-mode)))
   :custom
   (corfu-preview-current nil)
   (corfu-separator ?\s)
   (corfu-cycle t)
   (corfu-compact t)
   (corfu-quit-at-boundary 'separator)
+  (corfu-quit-no-match t)
   (corfu-minimum-prefix-lenght 2)
   (corfu-echo-documentation t)
   (corfu-echo-delay 0.2)
   (corfu-quit-no-match t)
   (corfu-preselect-first nil)
-  
+  (corfu-auto t)
+  (corfu-auto-prefix 2)
+  (corfu-popupinfo-hide t)
+  (corfu-popupinfo-resize t)
+  (corfu-popupinfo-delay .5)
+  (corfu-popupinfo-direction 'vertical)
   :bind(:map corfu-map
 			 ("M-SPC" . corfu-insert-separator)
 			 ("TAB" . corfu-next)
@@ -633,10 +679,21 @@ I'm actually using corfu for some nice in-buffer completion popups.
 			 ("[backtab]" . corfu-previous)
 			 ("S-TAB" . corfu-previous)
 			 ("S-<return>" . corfu-insert))
-  :init
-  (global-corfu-mode))
 #+END_SRC
-
+*** Add Corfu-doc for some lil nice documentation
+Disabled because =corfu-doc= is actually deprecated.
+#+BEGIN_SRC elisp :tangle no
+(use-package corfu-doc
+  :after corfu
+  :hook (corfu-mode . corfu-doc-mode)
+  :bind(:map corfu-map
+			 ("M-n" . corfu-doc-scroll-up)
+			 ("M-p" . corfu-doc-scroll-down))
+  :custom
+  (corfu-doc-delay 0.5)
+  (corfu-doc-max-width 70)
+  (corfu-doc-max-height 20))
+#+END_SRC
 *** Use Cape with Corfu!
 #+BEGIN_SRC elisp
 (use-package cape
@@ -647,21 +704,25 @@ I'm actually using corfu for some nice in-buffer completion popups.
   :init
   (add-to-list 'completion-at-point-functions #'cape-dabbrev)
   (add-to-list 'completion-at-point-functions #'cape-file)
-  (add-to-list 'completion-at-point-functions #'cape-line))
+  (add-to-list 'completion-at-point-functions #'cape-line)
+  (advice-add 'eglot-completion-at-point :around #'cape-wrap-buster))
 #+END_SRC
 
-** TODO Configure multi-cursors-package.
 * Eshell
 ** Eshell toggle package
 Package to toggle eshell on a screen side.
 #+begin_src elisp
 (use-package eshell-toggle
-		:demand t
+		:demand
 		:straight (:type git :host github :repo "4DA/eshell-toggle")
 		:bind
 		("C-c e" . eshell-toggle))
 #+end_src
 * Org mode configuration
+** Demanding org-mode
+#+BEGIN_SRC elisp
+(use-package org)
+#+END_SRC
 ** First, installing org +bullets+ superstar
 
 I've switched from org-bullets to org-superstar since they're pretty
@@ -765,7 +826,6 @@ file in the same directory as the org-buffer and insert a link to this file."
 #+end_src
 
 * Rss with elfeed
-
 Elfeed is a awesome RSS feed reader for emacs. I mainly use it to keep track of some subreddits.
 
 #+begin_src elisp
@@ -777,19 +837,33 @@ Elfeed is a awesome RSS feed reader for emacs. I mainly use it to keep track of 
 		elfeed-use-curl t))
 #+end_src
 
-* Golang package
-#+BEGIN_SRC elisp
-(use-package go-mode
-  :ensure t)
-#+END_SRC
-
 * Some misc stuff
+** Try package
+Try is a simple package which evaluates the contents of a link to a elisp file or alternatively
+to a MELPA/ELPA package. It allows one to try packages without having to actually install them, without byte-compiling and stuff.
+The package itself has around 90 lines with a lot of commands, so its good to have on any workflow.
+#+BEGIN_SRC elisp
+(use-package try
+  :defer t)
+#+END_SRC
+** Re-source init.el easily
+This is a simple function that just re-sources =init.el=. Made for lazyness.
+#+BEGIN_SRC elisp
+(defun lx-resource-initel ()
+  (interactive)
+  (load-file user-init-file))
+#+END_SRC
+** Lua mode
+#+begin_src elisp
+(use-package lua-mode)
+#+end_src
 ** Select line function
 Here's a simple function, inspired by Xah Lee's one, that selects the entire line.
 #+BEGIN_SRC elisp
 (defun lx-select-line ()
   "Selects the current line. It's a good idea to bind it to some keybind."
   (interactive)
+  ;; If region is already active
   (if (region-active-p)
 	  (if visual-line-mode
 		  (let ((xp1 (point)))
@@ -820,6 +894,76 @@ That's why the prefix is =C-x C-d=, because I think It will be good to just pres
 (define-prefix-command 'lx-prefix-keymap)
 (global-set-key (kbd "C-x C-d") 'lx-prefix-keymap)
 #+END_SRC
+** Golang env configuration
+#+BEGIN_SRC elisp :tangle no
+(use-package go-mode
+  :ensure t)
+
+;; (defun lx-go-mode-hook ()
+;;   ; Use goimports instead of go-fmt
+;;   (setq gofmt-command "goimports")
+;;   ; Call Gofmt before saving
+;;   (add-hook 'before-save-hook 'gofmt-before-save)
+;;   ; Customize compile command to run go build
+;;   (if (not (string-match "go" compile-command))
+;;       (set (make-local-variable 'compile-command)
+;;            "go run"))
+;;   )
+;; (add-hook 'go-mode-hook 'lx-go-mode-hook)
+#+END_SRC
+
+Trying currently eglot + gopls
+#+BEGIN_SRC elisp
+;; Configure eglot to recognize gopls. Since it's my first experience with LSP, I'll leave it here.
+;; If I like it, I might move it to a proper location to integrate other languages.
+(use-package eglot
+  :ensure t
+  :config
+  (add-to-list 'eglot-server-programs '(go-mode . ("gopls"))))
+
+(use-package go-mode
+  :ensure t
+  :hook
+  (go-mode . eglot-ensure))
+#+END_SRC
+** Automatically clean whitespace
+This will remove any trailing whitespaces on file save. Definetely good to have.
+#+BEGIN_SRC elisp
+(use-package ws-butler
+  ;; Activate on text and programming modes.
+  :hook ((text-mode . ws-butler-mode)
+		 (prog-mode . ws-butler-mode)))
+#+END_SRC
+** Avy to jump around
+Avy is a super-cool package that allows you to jump around your buffer.
+It has a lot of cool features, but here I'm using =avy-goto-{line, char, word}=
+which, as the name says, jumps between lines, chars and words.
+Might bind some other cool functions that Avy provides later.
+#+BEGIN_SRC elisp
+(use-package avy
+  :commands(avy-goto-char-timer avy-goto-word-1 avy-goto-line)
+  :bind(("C-c f c" . avy-goto-char-timer)
+		("M-g g" . avy-goto-line)
+		("C-c f w" . avy-goto-word-1)
+		("C-c f i" . lx-jump-and-godexit)))
+#+END_SRC
+*** Function for selecting word/char and deactivating godmode to write.
+As the function description says... It jumps for a word or character using
+=avy-goto-char-timer= and after that moves the cursor for the end of the desired
+selection and deactivates god-mode, so you can start typing.
+#+BEGIN_SRC elisp
+(defun lx-jump-and-godexit ()
+  "Jump to word or char with avy, puts the cursor after the word/char
+and deactivates godmode in order to type."
+  (interactive)
+  (avy-goto-char-timer)
+  (forward-word)
+  (when (bound-and-true-p god-local-mode)
+	(god-local-mode -1))) ;; Deactivate godmode if its active
+#+END_SRC
+** TODO Configure multi-cursors-package.
+I plan into adding [[https://github.com/magnars/multiple-cursors.el][magnars/multiple-cursors.el]] into my config. But, I'm kinda lazy so
+I guess that to do that later.
 * Mail setup with mu4e
 
 Mail setup using mu4e.
@@ -846,6 +990,4 @@ Mail setup using mu4e.
 		("/lxg00n-paranoid/Sent Items" . ?s)
 		("/lxg00n-paranoid/Drafts"	   . ?d)
 		("/lxg00n-paranoid/Trash"	   . ?t)))
-
 #+end_src
-
