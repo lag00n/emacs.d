@@ -2,9 +2,9 @@
 #+PROPERTY: header-args:elisp :tangle ./init.el :results none
 #+STARTUP: overview
 * Welcome to my config!
-That's my emacs config, written in org. This file generates [[file:init.el][init.el]] which will be loaded by emacs at startup.
+That's my literate emacs config, written in org. This file generates [[file:init.el][init.el]] which will be loaded by emacs at startup.
+Expect constant updates to this config, since I'm always trying and modifying stuff in order to fit my personal preferences.
 Whitout futher ado, let's get started!
-Still is a wip, so, stuff can be updated anytime.
 
 * Startup Performance
 
@@ -198,6 +198,7 @@ I'm currently trying out god-mode for reducing modifiers usage. Seems good, but 
 		 ("C-x C-3" . split-and-follow-horizontally) ;; Same thing
 		 ("C-x C-0" . delete-window)
 		 ("C-r" . lx-jump-and-godexit)
+		 ("C-j" . lx-eletric-newline-and-maybe-indent)
 		 ("C-x np" . dired)
 		 :map god-local-mode-map
 		 ("," . repeat)
@@ -206,7 +207,8 @@ I'm currently trying out god-mode for reducing modifiers usage. Seems good, but 
 		 ("u" . undo)
 		 ("[" . backward-paragraph)
 		 ("]" . forward-paragraph)
-		 ("V" . scroll-down))
+		 ("V" . scroll-down)
+		 ("D" . kill-whole-line))
   :config
   (add-hook 'post-command-hook #'lxmacs-god-mode-update-cursor-type)
   (setq god-exempt-predicate (lambda () (not (equal (this-command-keys) "q"))))
@@ -369,7 +371,7 @@ Just configuring basic UI settings, to make Emacs look a lot more minimal. Basic
 #+begin_src elisp
 (defun lxgmacs/set-font-faces ()
   (message "Setting Faces.")
-  (set-face-attribute 'default nil :font "Cascadia Code PL Cursive-12")
+  (set-face-attribute 'default nil :font "Cascadia Code PL Cursive Freeze-12")
   (set-fontset-font t 'symbol "Symbola" nil))
 
 (if (daemonp)
@@ -388,7 +390,7 @@ That isn't the best approach but until Emacs doesn't support this natively, it's
 
 #+begin_src elisp
 (custom-set-faces
- '(font-lock-comment-face ((t (:font "Cascadia Code PL Cursive-12" :italic t :bold t)))))
+ '(font-lock-comment-face ((t (:font "Cascadia Code PL Cursive Cursive-12" :italic t :bold t)))))
 #+end_src
 
 ** Doom-themes
@@ -559,7 +561,9 @@ CLOSED: [2021-05-16 dom 00:00]
   (counsel-mode 1))
 #+end_src
 
-** Vertico
+** Vertico + consult + embark + related
+Here I add vertico package, consult, embark and other packages related to them.
+TODO: but them on separate stuff
 #+BEGIN_SRC elisp
 (defun lx-minibuffer-backward-kill (arg)
   "When minibuffer is completing a file name delete up to parent folder,
@@ -575,6 +579,7 @@ otherwise delete a word"
   :straight (vertico :files (:defaults "extensions/*")
 					 :includes(vertico-indexed
 							   vertico-flat
+							   vertico-vertical
 							   vertico-grid
 							   vertico-mouse
 							   vertico-quick
@@ -594,10 +599,16 @@ otherwise delete a word"
   (setq vertico-resize t
 		vertico-count 8)
   (vertico-multiform-mode)
+  (setq vertico-multiform-commands
+		'((execute-extended-command flat)
+		  (find-file flat)
+		  (consult-line buffer)
+		  (consult-buffer flat)))
   :bind(:map vertico-map
 			 ("C-j" . vertico-next)
 			 ("C-k" . vertico-previous)
 			 ("C-f" . vertico-exit)
+			 ("M-k" . embark-kill-buffer-and-window)
         :map minibuffer-local-map
 			 ("M-h" . lx-minibuffer-backward-kill)))
 
@@ -642,43 +653,67 @@ otherwise delete a word"
   (completion-in-region-function #'consult-completion-in-region)
   :config
   (consult-preview-at-point-mode))
+
+(use-package embark
+  :bind (:map minibuffer-local-map
+			  ("C-." . embark-act))
+  :config
+  (setq embark-action-indicator
+		(lambda (map)
+		  (which-key--show-keymap "Embark" map nil nil 'no-paging)
+		  embark-become-indicator embark-action-indicator))
+  (setq embark-quit-after-action '(t . nil))
+  (setf (alist-get 'kill-buffer embark-pre-action-hooks) nil))
+
+(use-package embark-consult
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
+#+END_SRC
+
+*** Cool embark functions
+#+BEGIN_SRC elisp
+(defun lx-embark-auto-kill()
+  "Run embark-act with the kill-buffer action in a single call"
+  (interactive)
+  (call-interactively 'embark-act)
+  (call-interactively 'kill-buffer))
 #+END_SRC
 
 ** In-buffer completion with *corfu*
 I'm actually using corfu for some nice in-buffer completion popups.
 #+BEGIN_SRC elisp
-(use-package corfu
-  ;; Adding some corfu extensions to the base corfu
-  :straight (:files (:defaults "extensions/*")
-					:includes (corfu-popupinfo))
-  :hook
-  ((prog-mode-hook . corfu-mode)
-   (corfu-mode-hook . corfu-popupinfo-mode)))
-  :custom
-  (corfu-preview-current nil)
-  (corfu-separator ?\s)
-  (corfu-cycle t)
-  (corfu-compact t)
-  (corfu-quit-at-boundary 'separator)
-  (corfu-quit-no-match t)
-  (corfu-minimum-prefix-lenght 2)
-  (corfu-echo-documentation t)
-  (corfu-echo-delay 0.2)
-  (corfu-quit-no-match t)
-  (corfu-preselect-first nil)
-  (corfu-auto t)
-  (corfu-auto-prefix 2)
-  (corfu-popupinfo-hide t)
-  (corfu-popupinfo-resize t)
-  (corfu-popupinfo-delay .5)
-  (corfu-popupinfo-direction 'vertical)
-  :bind(:map corfu-map
-			 ("M-SPC" . corfu-insert-separator)
-			 ("TAB" . corfu-next)
-			 ("[tab]" . corfu-next)
-			 ("[backtab]" . corfu-previous)
-			 ("S-TAB" . corfu-previous)
-			 ("S-<return>" . corfu-insert))
+  (use-package corfu
+	;; Adding some corfu extensions to the base corfu
+	:straight (:files (:defaults "extensions/*")
+					  :includes (corfu-popupinfo))
+	:hook
+	((prog-mode-hook . corfu-mode)
+	 (corfu-mode-hook . corfu-popupinfo-mode))
+	:custom
+	;; (corfu-preview-current nil)
+	;; (corfu-separator ?\s)
+	;; (corfu-cycle t)
+	;; (corfu-compact t)
+	(corfu-quit-at-boundary 'separator)
+	(corfu-quit-no-match t)
+	(corfu-minimum-prefix-lenght 2)
+	(corfu-echo-documentation t)
+	(corfu-echo-delay 0.2)
+	(corfu-quit-no-match t)
+	(corfu-preselect-first nil)
+	(corfu-auto t)
+	(corfu-auto-prefix 2)
+	(corfu-popupinfo-hide t)
+	(corfu-popupinfo-resize t)
+	(corfu-popupinfo-delay .5)
+	(corfu-popupinfo-direction 'vertical)
+	:bind(:map corfu-map
+			   ("M-SPC" . corfu-insert-separator)
+			   ("TAB" . corfu-next)
+			   ("[tab]" . corfu-next)
+			   ("[backtab]" . corfu-previous)
+			   ("S-TAB" . corfu-previous)
+			   ("S-<return>" . corfu-insert)))
 #+END_SRC
 *** Add Corfu-doc for some lil nice documentation
 Disabled because =corfu-doc= is actually deprecated.
@@ -960,6 +995,45 @@ and deactivates godmode in order to type."
   (forward-word)
   (when (bound-and-true-p god-local-mode)
 	(god-local-mode -1))) ;; Deactivate godmode if its active
+#+END_SRC
+** Tweaking eletric-newline-and-maybe-indent
+I'm tweaking C-j default behavior in order to deactivate godmode too. Seems a better option.
+#+BEGIN_SRC elisp
+(defun lx-eletric-newline-and-maybe-indent ()
+  "Creates a new line and switches to it, deactivating godmode if active."
+  (interactive)
+  (move-end-of-line 1)
+  (electric-newline-and-maybe-indent)
+  (when (bound-and-true-p god-local-mode)
+	(god-local-mode -1)))
+#+END_SRC
+** Whitespace-mode
+I'll be here doing some whitespace-mode configuration in order to highlight some stuff, like, tabs, trailing-spaces etc.
+#+BEGIN_SRC elisp
+(use-package whitespace-mode
+  :hook (prog-mode . whitespace-mode)
+  :custom
+  (whitespace-style '(face tabs tab-mark trailing))
+  :config
+  (setq whitespace-global-modes '(not text-mode
+									  shell-mode
+									  eshell-mode
+									  term-mode
+									  vterm-mode
+									  minibuffer-inactive-mode)))
+#+END_SRC
+** Simple binding to recompile // Change default compile command
+Here I change the default compile command based on the filetype, so I can get a custom
+compile command based on the actual language.
+#+BEGIN_SRC elisp
+(use-package emacs
+  :hook
+  (go-mode . (lambda ()
+			   (set (make-local-variable 'compile-command)
+					(format "go build %s" (file-name-nondirectory buffer-file-name)))))
+  :bind
+  (("C-c r" . (lambda () (interactive) (save-some-buffers t) (recompile)))
+  ("C-c d" . kill-whole-line)))
 #+END_SRC
 ** TODO Configure multi-cursors-package.
 I plan into adding [[https://github.com/magnars/multiple-cursors.el][magnars/multiple-cursors.el]] into my config. But, I'm kinda lazy so

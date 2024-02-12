@@ -31,12 +31,12 @@
 
 	(mellow-light-cyan "#bf472c")
 	(mellow-light-brightcyan "#d47d49")
-		
+
 	(mellow-light-white "#e0ccae")
 	(mellow-light-brightwhite "#f2ddbc"))
 
  ;; Customize faces
-  ;; Basic stuff  
+  ;; Basic stuff
  ((default                      (:foreground mellow-light-black :background mellow-light-brightwhite))
 	(cursor                       (:background mellow-light-black))
 	(region                       (:background mellow-light-white :box (:line-width -1 :color mellow-light-cyan :style nil)))
@@ -44,7 +44,7 @@
 	(lazy-highlight               (:background mellow-light-white))
 	(mode-line                    (:background mellow-light-white))
 	(lambda-line-active-status-RW (:background mellow-light-brightred))
-	(line-number                  (:foreground mellow-light-brightblack :background mellow-light-white :bold nil)) ;; Bold looks a little awful ngl 
+	(line-number                  (:foreground mellow-light-brightblack :background mellow-light-white :bold nil)) ;; Bold looks a little awful ngl
 	(line-number-current-line     (:foreground mellow-light-red :bold t))
 	(fringe                       (:background mellow-light-brightwhite))
 	;; Font-lock related
@@ -55,6 +55,9 @@
 	(font-lock-builtin-face       (:foreground mellow-light-cyan))
 	;; Rainbow Delimiters colors
 	(rainbow-delimiters-depth-1-face (:foreground mellow-light-magenta))
+	;; Whitespace-mode
+	(whitespace-tab (:background mellow-light-brightwhite :foreground mellow-light-magenta ))
+	(whitespace-trailing (:background mellow-light-red :foreground mellow-light-brightyellow ))
 	;; Org-mode related
 	(org-level-1                  (:foreground mellow-light-red))
 	(org-block                    (:background mellow-light-white))
