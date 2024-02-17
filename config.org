@@ -199,6 +199,7 @@ I'm currently trying out god-mode for reducing modifiers usage. Seems good, but 
 		 ("C-x C-0" . delete-window)
 		 ("C-r" . lx-jump-and-godexit)
 		 ("C-j" . lx-eletric-newline-and-maybe-indent)
+		 ("C-S-J" . lx-eletric-newline-and-maybe-indent-backwards)
 		 ("C-x np" . dired)
 		 :map god-local-mode-map
 		 ("," . repeat)
@@ -371,7 +372,7 @@ Just configuring basic UI settings, to make Emacs look a lot more minimal. Basic
 #+begin_src elisp
 (defun lxgmacs/set-font-faces ()
   (message "Setting Faces.")
-  (set-face-attribute 'default nil :font "Cascadia Code PL Cursive Freeze-12")
+  (set-face-attribute 'default nil :font "Cascadia Code PL Cursive SemiLight-12")
   (set-fontset-font t 'symbol "Symbola" nil))
 
 (if (daemonp)
@@ -390,7 +391,7 @@ That isn't the best approach but until Emacs doesn't support this natively, it's
 
 #+begin_src elisp
 (custom-set-faces
- '(font-lock-comment-face ((t (:font "Cascadia Code PL Cursive Cursive-12" :italic t :bold t)))))
+ '(font-lock-comment-face ((t (:font "Cascadia Code PL Cursive SemiLight-12" :italic t :bold t)))))
 #+end_src
 
 ** Doom-themes
@@ -996,14 +997,32 @@ and deactivates godmode in order to type."
   (when (bound-and-true-p god-local-mode)
 	(god-local-mode -1))) ;; Deactivate godmode if its active
 #+END_SRC
-** Tweaking eletric-newline-and-maybe-indent
+** Tweaking C-j
 I'm tweaking C-j default behavior in order to deactivate godmode too. Seems a better option.
 #+BEGIN_SRC elisp
-(defun lx-eletric-newline-and-maybe-indent ()
-  "Creates a new line and switches to it, deactivating godmode if active."
-  (interactive)
+(defun lx-eletric-newline-and-maybe-indent (arg)
+  "Creates N newlines under the current line and moves the cursor to it, disabling godmode.
+The number of lines created can be changed using a prefix argument."
+  (interactive "p")
   (move-end-of-line 1)
-  (electric-newline-and-maybe-indent)
+  (newline arg)
+  (indent-according-to-mode)
+;;  (forward-line arg) --> That is not necessary since newline apparently already moves the cursor together.
+  (when (bound-and-true-p god-local-mode)
+	(god-local-mode -1)))
+#+END_SRC
+
+Also, we gotta tweak it backwards too. It will be similar to *o* and *O* in vim.
+#+BEGIN_SRC elisp
+(defun lx-eletric-newline-and-maybe-indent-backwards (arg)
+  "Creates N newlines above the current line and moves the cursor to it, disabling godmode.
+The number of lines created can be changed using a prefix argument."
+  (interactive "p")
+  (move-beginning-of-line 1)
+  (newline arg)
+  ;; Here we multiply arg by -1 to get the opposite direction
+  (forward-line (* arg -1))
+  (indent-according-to-mode)
   (when (bound-and-true-p god-local-mode)
 	(god-local-mode -1)))
 #+END_SRC
