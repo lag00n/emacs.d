@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: simple scanf
+# key: /sf
+# expand-env: ((yas-indent-line 'fixed))
+# --
+
+scanf("%${1:s}", ${2:&${3:variable}});
+$0

@@ -193,6 +193,7 @@ I'm currently trying out god-mode for reducing modifiers usage. Seems good, but 
 (use-package god-mode
   :demand
   :bind (("<escape>". god-local-mode)
+		 ("C-o" . god-local-mode)
 		 ("C-x C-1" . delete-other-windows)
 		 ("C-x C-2" . split-and-follow-vertically) ;; Function created by me on topic above.
 		 ("C-x C-3" . split-and-follow-horizontally) ;; Same thing
@@ -206,6 +207,8 @@ I'm currently trying out god-mode for reducing modifiers usage. Seems good, but 
 		 ("." . backward-word) ;; Go to previous word start.
 		 (";" . forward-to-word) ;; Go to next word start.
 		 ("u" . undo)
+		 ("j" . lx-eletric-newline-and-maybe-indent)
+		 ("J" . lx-eletric-newline-and-maybe-indent-backwards)
 		 ("[" . backward-paragraph)
 		 ("]" . forward-paragraph)
 		 ("V" . scroll-down)
@@ -372,7 +375,7 @@ Just configuring basic UI settings, to make Emacs look a lot more minimal. Basic
 #+begin_src elisp
 (defun lxgmacs/set-font-faces ()
   (message "Setting Faces.")
-  (set-face-attribute 'default nil :font "Cascadia Code PL Cursive SemiLight-12")
+  (set-face-attribute 'default nil :font "Input-10")
   (set-fontset-font t 'symbol "Symbola" nil))
 
 (if (daemonp)
@@ -391,7 +394,7 @@ That isn't the best approach but until Emacs doesn't support this natively, it's
 
 #+begin_src elisp
 (custom-set-faces
- '(font-lock-comment-face ((t (:font "Cascadia Code PL Cursive SemiLight-12" :italic t :bold t)))))
+ '(font-lock-comment-face ((t (:font "Input-10" :italic t :bold t)))))
 #+end_src
 
 ** Doom-themes
@@ -757,7 +760,9 @@ Package to toggle eshell on a screen side.
 * Org mode configuration
 ** Demanding org-mode
 #+BEGIN_SRC elisp
-(use-package org)
+(use-package org
+  :config
+  (setq org-list-allow-alphabetical t))
 #+END_SRC
 ** First, installing org +bullets+ superstar
 
@@ -878,7 +883,7 @@ Elfeed is a awesome RSS feed reader for emacs. I mainly use it to keep track of 
 Try is a simple package which evaluates the contents of a link to a elisp file or alternatively
 to a MELPA/ELPA package. It allows one to try packages without having to actually install them, without byte-compiling and stuff.
 The package itself has around 90 lines with a lot of commands, so its good to have on any workflow.
-#+BEGIN_SRC elisp
+#+BEGIN_SRC elisp :tangle no
 (use-package try
   :defer t)
 #+END_SRC
@@ -890,9 +895,22 @@ This is a simple function that just re-sources =init.el=. Made for lazyness.
   (load-file user-init-file))
 #+END_SRC
 ** Lua mode
-#+begin_src elisp
+Disabled because basically I don't need it.
+#+begin_src elisp :tangle no
 (use-package lua-mode)
 #+end_src
+** Zig mode
+Currently, I'm in love with Zig, so I'll be installing it's dedicated mode to work in with emacs.
+It's good to notice that most modes, both in Emacs and Vim, are made by the ziglang team, and work pretty well.
+#+BEGIN_SRC elisp
+(use-package zig-mode)
+#+END_SRC
+** Magit
+If you use Git for any reason, and use Emacs, you should *definitely* check on Magit.
+I've not done any custom configuration yet, once the default settings are pretty sane.
+#+BEGIN_SRC elisp
+(use-package magit)
+#+END_SRC
 ** Select line function
 Here's a simple function, inspired by Xah Lee's one, that selects the entire line.
 #+BEGIN_SRC elisp
@@ -964,6 +982,7 @@ Trying currently eglot + gopls
 #+END_SRC
 ** Automatically clean whitespace
 This will remove any trailing whitespaces on file save. Definetely good to have.
+That's really good!
 #+BEGIN_SRC elisp
 (use-package ws-butler
   ;; Activate on text and programming modes.
